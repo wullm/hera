@@ -411,6 +411,18 @@ wasserstein_cost_with_pairings(const PairContainer& A,
     using RealType  = typename Traits::RealType;
 
     if (hera::ws::are_equal(A, B)) {
+        //Create the identity matching
+        int diag_size = A.size();
+        bidders_to_items.resize(2*diag_size);
+        edge_costs.resize(2*diag_size);
+        for (int i=0; i<diag_size; i++) {
+            bidders_to_items[i] = i+diag_size;
+            bidders_to_items[i+diag_size] = i;
+            edge_costs[i] = 0;
+            edge_costs[i+diag_size] = 0;
+        }
+
+
         return 0.0;
     }
 
