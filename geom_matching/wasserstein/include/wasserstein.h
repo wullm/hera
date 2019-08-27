@@ -1,6 +1,7 @@
-/*
 
-Copyright (c) 2015, M. Kerber, D. Morozov, A. Nigmetov
+/*
+Original work Copyright (c) 2015, M. Kerber, D. Morozov, A. Nigmetov
+Modified work Copyright (c) 2019, Willem Elbers
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -24,7 +25,8 @@ perpetual license to install, use, modify, prepare derivative works, incorporate
 into other computer software, distribute, and sublicense such enhancements or
 derivative works thereof, in binary and source code form.
 
-  */
+*/
+
 
 #ifndef HERA_WASSERSTEIN_H
 #define HERA_WASSERSTEIN_H
