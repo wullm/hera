@@ -46,6 +46,9 @@ file(GLOB WS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h ${CMAKE_CURRENT_SOU
 find_package (Threads)
 set (libraries ${libraries}     ${CMAKE_THREAD_LIBS_INIT})
 
+add_executable(wasserstein_pairings ${CMAKE_CURRENT_SOURCE_DIR}/example/wasserstein_pairings.cpp ${WS_HEADERS} include/hera_infinity.h)
+target_link_libraries(wasserstein_pairings PUBLIC ${libraries})
+
 add_executable(wasserstein_dist ${CMAKE_CURRENT_SOURCE_DIR}/example/wasserstein_dist.cpp ${WS_HEADERS} include/hera_infinity.h)
 target_link_libraries(wasserstein_dist PUBLIC ${libraries})
 
