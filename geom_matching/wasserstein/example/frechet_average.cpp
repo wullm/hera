@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     using PairVector = std::vector<std::pair<double, double>>;
     PairVector diagramA, diagramB;
 
-    std::vector<PairVector> diagrams(3);
+    std::vector<PairVector> diagrams(4);
 
     hera::AuctionParams<double> params;
     params.max_num_phases = 800;
@@ -71,6 +71,9 @@ int main(int argc, char* argv[])
     //Use Euclidean norm for the distances pApB with pA, pB points in persistence diagrams
     params.internal_p = 2;
 
+    //The Frechet algorithm justifies a very small delta, to aid the greedy search
+    params.delta = 1e-7;
+
 
     bool print_relative_error = ops >> opts::Present('e', "--print-error", "Print real relative error");
 
@@ -82,12 +85,17 @@ int main(int argc, char* argv[])
 
 
     //Read the diagrams
-    hera::read_diagram_point_set("tests/data/sample/test_5_A", diagrams[0]);
-    hera::read_diagram_point_set("tests/data/sample/test_5_B", diagrams[1]);
-    hera::read_diagram_point_set("tests/data/sample/test_5_C", diagrams[2]);
+    hera::read_diagram_point_set("tests/data/sample2/test_100_A", diagrams[0]);
+    hera::read_diagram_point_set("tests/data/sample2/test_100_B", diagrams[1]);
+    hera::read_diagram_point_set("tests/data/sample2/test_100_C", diagrams[2]);
+    hera::read_diagram_point_set("tests/data/sample2/test_100_D", diagrams[3]);
+    //hera::read_diagram_point_set("tests/data/sample2/test_200_E", diagrams[4]);
 
     //Initialize the average diagram
-    PairVector Fravg = diagrams[0];
+    PairVector Fravg = diagrams[3];
+
+    //The number of diagrams
+    int diag_num = diagrams.size();
 
     //The size of the diagram
     int diag_size = Fravg.size();
@@ -109,7 +117,7 @@ int main(int argc, char* argv[])
     //Do the main loop
     bool done = false;
     int ITER = 0;
-    int max_ITER = 10;
+    int max_ITER = 1000;
 
     while(!done) {
         //Reset the vectors
@@ -120,8 +128,11 @@ int main(int argc, char* argv[])
         }
 
 
+
+        double total_cost = 0;
+
         //Calculate the optimal matchings
-        for (int i = 0; i < diagrams.size(); i++) {
+        for (int i = 0; i < diag_num; i++) {
             //Vectors to store the pairing and costs
             std::vector<IdxType> bidders_to_items;
             std::vector<double> edge_costs;
@@ -136,6 +147,8 @@ int main(int argc, char* argv[])
                     arithmetic_mean[j].second += diagrams[i][bidders_to_items[j]-diag_size].second;
                 }
             }
+
+            total_cost += distance;
         }
 
         //Calculate the total distance moved
@@ -158,8 +171,8 @@ int main(int argc, char* argv[])
                 double delta_y = 0.5*(w_x + w_y);
 
                 //Update the point location to the weighted average of w and delta
-                Fravg[i].first = (w_x * k + delta_x * (diag_size-k)) / diag_size;
-                Fravg[i].second = (w_y * k + delta_y * (diag_size-k)) / diag_size;
+                Fravg[i].first = (w_x * k + delta_x * (diag_num-k)) / diag_num;
+                Fravg[i].second = (w_y * k + delta_y * (diag_num-k)) / diag_num;
 
                 //Maintain the move distance
                 move_x += Fravg[i].first - old_x;
@@ -179,7 +192,7 @@ int main(int argc, char* argv[])
             done = true;
         }
 
-        std::cout << "Total distance moved = " << dist_moved << std::endl;
+        std::cout << "Total distance moved = " << dist_moved << ", total cost = " << total_cost << ", error = " << params.delta << std::endl;
 
         ITER++;
         if (ITER>max_ITER) {
@@ -200,7 +213,7 @@ int main(int argc, char* argv[])
     }
 
     //Calculate the optimal matchings
-    for (int i = 0; i < diagrams.size(); i++) {
+    for (int i = 0; i < diag_num; i++) {
         //Vectors to store the pairing and costs
         std::vector<IdxType> bidders_to_items;
         std::vector<double> edge_costs;
@@ -226,8 +239,6 @@ int main(int argc, char* argv[])
                 variances[j] += ((x-x2)*(x-x2) + (y-y2)*(y-y2))/diag_size;
             }
         }
-
-                std::cout << bidders_to_items.size() << std::endl;
     }
 
     //Print the results
