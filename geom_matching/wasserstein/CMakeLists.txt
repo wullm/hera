@@ -47,7 +47,8 @@ find_package (Threads)
 set (libraries ${libraries}     ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(frechet_average ${CMAKE_CURRENT_SOURCE_DIR}/example/frechet_average.cpp ${WS_HEADERS} include/hera_infinity.h)
-target_link_libraries(frechet_average PUBLIC ${libraries})
+set_target_properties(frechet_average PROPERTIES CXX_STANDARD 17)
+target_link_libraries(frechet_average PUBLIC ${libraries} -lstdc++fs)
 
 add_executable(wasserstein_pairings ${CMAKE_CURRENT_SOURCE_DIR}/example/wasserstein_pairings.cpp ${WS_HEADERS} include/hera_infinity.h)
 target_link_libraries(wasserstein_pairings PUBLIC ${libraries})
