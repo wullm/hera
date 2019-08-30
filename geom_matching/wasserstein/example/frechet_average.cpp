@@ -117,6 +117,8 @@ int main(int argc, char* argv[])
 
         if (read_diagram.size() > 0) {
             diagrams.push_back(read_diagram);
+        } else {
+            std::cerr << "Ignoring file " << entry.path() << "." << std::endl;
         }
     }
 
