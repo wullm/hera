@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
     std::vector<IdxType> bidders_to_items;
     std::vector<double> edge_costs;
 
-    int diag_size = diagramA.size();
+    int diag_A_size = diagramA.size();
 
     //Compute a distance
     double res = hera::wasserstein_dist_with_pairings(diagramA, diagramB, params, bidders_to_items, edge_costs, log_filename_prefix);
@@ -164,41 +164,76 @@ int main(int argc, char* argv[])
 
     std::cout << "#pA_x\tpA_y\tpB_x\tpB_y\ttype\tcost" << std::endl;
 
+    /**
+    * Each edge connects a point in X = A U B' with a point in
+    * Y = A' U B. Here, A and B are the two persistence diagrams
+    * with m,n off-diagonal points respectively. And A' and B'
+    * are the sets of orthogonal projections of points (x,y) onto
+    * the diagonal at 0.5*(x+y, x+y), also with m,n points respectively.
+    * Hence, both X and Y have m+n points and there are m+n edges.
+    *
+    * The edges are recorded in the vector bidders_to_items. Suppose the ith
+    * element of X is matched with the jth element of Y. So X_i Y_j is an edge.
+    * If    i < m, then X_i is the ith (off-diagonal) point of A.
+    *       i >= m, then X_i is the projection of the (i-m)th point of B.
+    *       j < m, then Y_j is the projection of the jth point of A.
+    *       j >= m, then Y_j is the (j-m)th (off-diagonal) point of B.
+    *
+    * We also know that skew edges, i.e. an edge between A_i and the projection
+    * of A_j with i<>j or similarly for B, do not occur.
+    **/
+
+
     for(int bIdx = 0; bIdx < (int) bidders_to_items.size(); ++bIdx) {
+        //This should always be the case
         if (bidders_to_items[bIdx] != -1) {
-            std::pair<double, double> pA, pB;
+            std::pair<double, double> pX, pY;
 
             std::string edge_type = "";
 
+            //The ith element of X is matched with the jth element of Y (see above)
+            int i = bIdx;
+            int j = bidders_to_items[bIdx];
+
             //Off-diagonal point in A matched to off-diagonal point in B
-            if (bIdx < diag_size && bidders_to_items[bIdx] >= diag_size) {
-                pA = diagramA[bIdx];
-                pB = diagramB[bidders_to_items[bIdx] - diag_size];
+            if (i < diag_A_size && j >= diag_A_size) {
+                pX = diagramA[i];
+                pY = diagramB[j - diag_A_size];
                 edge_type = "NN";
             }
 
-            //Off-diagonal point in A matched to diagonal
-            else if (bIdx < diag_size && bidders_to_items[bIdx] < diag_size) {
-                pA = diagramA[bIdx];
-                double x = pA.first;
-                double y = pA.second;
-                pB = {0.5*(x+y), 0.5*(x+y)};
+            //Off-diagonal point in A matched to diagonal projection of point in A
+            else if (i < diag_A_size && j < diag_A_size) {
+                pX = diagramA[i];
+                std::pair<double, double> pY_off = diagramA[j];
+                double xY = pY_off.first;
+                double yY = pY_off.second;
+                pY = {0.5*(xY+yY), 0.5*(xY+yY)};
                 edge_type = "ND";
             }
 
-            //Off-diagonal point in B matched to diagonal
-            else if (bIdx >= diag_size && bidders_to_items[bIdx] >= diag_size) {
-                pB = diagramB[bIdx - diag_size];
-                double x = pB.first;
-                double y = pB.second;
-                pA = {0.5*(x+y), 0.5*(x+y)};
+            //Diagonal projection of point in B matched with off-diagonal point in B
+            else if (i >= diag_A_size && j >= diag_A_size) {
+                std::pair<double, double> pX_off = diagramB[i - diag_A_size];
+                double xX = pX_off.first;
+                double yX = pX_off.second;
+                pX = {0.5*(xX+yX), 0.5*(xX+yX)};
+                pY = diagramB[j - diag_A_size];
                 edge_type = "DN";
             }
 
-            //Diagonal matched to diagonal
-            else if (bIdx >= diag_size && bidders_to_items[bIdx] < diag_size) {
-                pA = {1,1};
-                pB = {1,1};
+            //Diagonal projection of point in B matched to diagonal projection of point in A
+            else if (i >= diag_A_size && j < diag_A_size) {
+                std::pair<double, double> pX_off = diagramB[i - diag_A_size];
+                double xX = pX_off.first;
+                double yX = pX_off.second;
+                pX = {0.5*(xX+yX), 0.5*(xX+yX)};
+
+                std::pair<double, double> pY_off = diagramA[j];
+                double xY = pY_off.first;
+                double yY = pY_off.second;
+                pY = {0.5*(xY+yY), 0.5*(xY+yY)};
+
                 edge_type = "DD";
             }
 
@@ -207,7 +242,7 @@ int main(int argc, char* argv[])
                 assert(false);
             }
 
-            std::cout <<  pA.first << "\t" << pA.second << "\t" << pB.first << "\t" << pB.second << "\t" << edge_type << "\t" << edge_costs[bIdx] << std::endl;
+            std::cout <<  pX.first << "\t" << pX.second << "\t" << pY.first << "\t" << pY.second << "\t" << edge_type << "\t" << edge_costs[bIdx] << std::endl;
         } else {
             assert(false);
         }
