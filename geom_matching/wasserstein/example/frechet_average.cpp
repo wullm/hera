@@ -369,13 +369,13 @@ int main(int argc, char* argv[])
                 double x2 = diagrams[i][bidders_to_items[j]-diag_size].first;
                 double y2 = diagrams[i][bidders_to_items[j]-diag_size].second;
 
-                variances[j] += ((x-x2)*(x-x2) + (y-y2)*(y-y2))/diag_size;
+                variances[j] += ((x-x2)*(x-x2) + (y-y2)*(y-y2))/diag_num;
             } else {
                 //Otherwise find the closest point on the diagonal
                 double x2 = 0.5*(x+y);
                 double y2 = 0.5*(x+y);
 
-                variances[j] += ((x-x2)*(x-x2) + (y-y2)*(y-y2))/diag_size;
+                variances[j] += ((x-x2)*(x-x2) + (y-y2)*(y-y2))/diag_num;
             }
         }
     }
