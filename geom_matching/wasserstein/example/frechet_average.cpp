@@ -60,6 +60,8 @@ int main(int argc, char* argv[])
     params.internal_p = 2;
     //The Frechet algorithm justifies a very small delta in the Wasserstein step, necessary for the gradient descent
     params.delta = 1e-7;
+    //The Frechet algorithm terminates when the distance travelled is 0, but one may increase the treshold to handle rounding errors
+    double max_dist = 0;
 
     //The number of random starting points to try, in finding the best Frechet average
     int starting_points = 1;
@@ -76,6 +78,7 @@ int main(int argc, char* argv[])
         >> opts::Option("max-bids-per-round", params.max_bids_per_round, "Maximal number of bids per round")
         >> opts::Option('m', "max-rounds", params.max_num_phases, "Maximal number of iterations")
         >> opts::Option('s', "starting-points", starting_points, "Number of random starting points to try for the Frechet average")
+        >> opts::Option("Fr-max-dist", max_dist, "Frechet algorithm terminates if distance moved is less than or equal to Fr-max-dist (default 0)")
         >> opts::Option("Fr-max-iter", max_ITER, "Maximum number of iterations in the Frechet averaging step");
 
     //This option applies both to the Wasserstein bidding & to the Frechet averaging
@@ -93,7 +96,7 @@ int main(int argc, char* argv[])
 
     //Print options
     if (verbose) {
-        std::cout << "#options: q = " << params.wasserstein_power << ", delta = " << params.delta << ", p = " << params.internal_p << ", max_round = " << params.max_num_phases << ", starting_points = " << starting_points <<  std::endl;
+        std::cout << "#options: q = " << params.wasserstein_power << ", delta = " << params.delta << ", p = " << params.internal_p << ", max_round = " << params.max_num_phases << ", starting_points = " << starting_points << ", max_dist = " << max_dist << ", max_ITER = " << max_ITER << std::endl;
     }
 
     //The path to the directory containing the diagrams
@@ -241,6 +244,8 @@ int main(int argc, char* argv[])
             total_cost = 0;
 
             //Calculate the optimal matchings
+            //Parallelize because wasserstein_dist is very slow
+            #pragma omp parallel for
             for (int i = 0; i < diag_num; i++) {
                 //Vectors to store the pairing and costs
                 std::vector<IdxType> bidders_to_items;
@@ -262,7 +267,12 @@ int main(int argc, char* argv[])
 
                 double distance = hera::wasserstein_dist_with_pairings(Fravg, diagrams[i], params, bidders_to_items, edge_costs);
 
+                if (verbose) {
+                    std::cout << ITER << ". Computed distance for " << i << "." << std::endl;
+                }
+
                 //For each off-diagonal point in D_avg
+                #pragma omp critical
                 for (int j = 0; j < diag_size; j++) {
                     //If the point is matched with an off-diagonal point in diagrams[i]
                     if (bidders_to_items[j] >= diag_size) {
@@ -272,6 +282,7 @@ int main(int argc, char* argv[])
                     }
                 }
 
+                #pragma omp critical
                 total_cost += distance*distance;
             }
 
@@ -312,7 +323,7 @@ int main(int argc, char* argv[])
 
             double dist_moved = sqrt(move_x*move_x + move_y*move_y);
 
-            if (dist_moved == 0) {
+            if (dist_moved < max_dist) {
                 done = true;
             }
 
@@ -324,7 +335,7 @@ int main(int argc, char* argv[])
             if (ITER>max_ITER && !params.tolerate_max_iter_exceeded) {
                 done = true;
                 std::cerr << "Exceeded max number of loops." << std::endl;
-                return 0;
+                // return 0;
             }
         }
 
@@ -334,7 +345,9 @@ int main(int argc, char* argv[])
         }
     }
 
-
+    if (verbose) {
+        std::cout << "Calculating Frechet variances." << std::endl;
+    }
 
     /**
     * Determine the Frechet variances associated with each point
@@ -351,6 +364,8 @@ int main(int argc, char* argv[])
     }
 
     //Calculate the optimal matchings
+    //Parallelize because wasserstein_dist is very slow
+    #pragma omp parallel for
     for (int i = 0; i < diag_num; i++) {
         //Vectors to store the pairing and costs
         std::vector<IdxType> bidders_to_items;
@@ -358,8 +373,14 @@ int main(int argc, char* argv[])
 
         double distance = hera::wasserstein_dist_with_pairings(best_Fravg, diagrams[i], params, bidders_to_items, edge_costs);
 
+        if (verbose) {
+            std::cout << "Computed distance for " << i << "." << std::endl;
+        }
+
+        #pragma omp critical
         total_variance += distance*distance;
 
+        #pragma omp critical
         for (int j = 0; j < diag_size; j++) {
             double x = best_Fravg[j].first;
             double y = best_Fravg[j].second;

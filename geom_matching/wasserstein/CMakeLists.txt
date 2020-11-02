@@ -46,9 +46,12 @@ file(GLOB WS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h ${CMAKE_CURRENT_SOU
 find_package (Threads)
 set (libraries ${libraries}     ${CMAKE_THREAD_LIBS_INIT})
 
+find_package(OpenMP REQUIRED)
+
 add_executable(frechet_average ${CMAKE_CURRENT_SOURCE_DIR}/example/frechet_average.cpp ${WS_HEADERS} include/hera_infinity.h)
 set_target_properties(frechet_average PROPERTIES CXX_STANDARD 17)
 target_link_libraries(frechet_average PUBLIC ${libraries} -lstdc++fs)
+target_link_libraries(frechet_average PRIVATE OpenMP::OpenMP_CXX)
 
 add_executable(wasserstein_pairings ${CMAKE_CURRENT_SOURCE_DIR}/example/wasserstein_pairings.cpp ${WS_HEADERS} include/hera_infinity.h)
 target_link_libraries(wasserstein_pairings PUBLIC ${libraries})
